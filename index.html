@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101419">
+  <title>RECOIL LAB · 压枪与跟枪训练</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='6' fill='%23101419'/%3E%3Cpath d='M20 3l17 9v16l-17 9-17-9V12Z M20 10v5m0 10v5M10 20h5m10 0h5' fill='none' stroke='%23ff5d37' stroke-width='1.8'/%3E%3Cpath d='m20 16.5 3.5 3.5-3.5 3.5-3.5-3.5Z' fill='%23ff5d37'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/src/ui/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <a class="brand" href="./" aria-label="RECOIL LAB 训练靶场首页">
+        <svg class="brand-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+          <path d="M20 2 38 11v18l-18 9-18-9V11L20 2Z" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M20 10v5m0 10v5M10 20h5m10 0h5" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M20 16.5 23.5 20 20 23.5 16.5 20l3.5-3.5Z" fill="currentColor"/>
+        </svg>
+        <span><strong>RECOIL<span> LAB</span></strong><small>压枪与跟枪训练</small></span>
+      </a>
+      <nav class="mode-nav" aria-label="训练模式">
+        <button type="button" data-mode-slot="0" aria-pressed="true">站定压枪</button>
+        <button type="button" data-mode-slot="1" aria-pressed="false">横移降后坐</button>
+        <button type="button" data-mode-slot="2" aria-pressed="false">移动靶跟枪</button>
+        <button type="button" data-mode-slot="3" aria-pressed="false">自由练习</button>
+      </nav>
+      <span class="local-status"><i></i>本地靶场</span>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <div class="workbench">
+      <div class="primary">
+        <div class="range-slot">
+          <section class="range" id="range" aria-label="训练视野">
+            <header class="range-bar">
+              <h1><span class="range-icon" aria-hidden="true"></span>训练视野</h1>
+              <div class="range-context"><span id="mode-tag">RECOIL</span><b id="range-tag">30 M</b></div>
+            </header>
+            <div class="stage">
+              <canvas id="game" aria-label="第一人称靶场" tabindex="0">此浏览器不支持 Canvas。</canvas>
+              <div class="stage-hud">
+                <div class="hud-frame" aria-hidden="true"></div>
+                <div class="scene-label">
+                  <strong id="mode-title">站定压枪</strong>
+                  <small id="mode-description">保持站定，观察弹道并练习反向压枪。</small>
+                </div>
+                <div class="motion-hud" aria-label="转向速度与降后坐">
+                  <div><span>转向角速度</span><strong><span id="yaw-rate">0.0</span> <small>°/s</small></strong></div>
+                  <div class="meter" id="yaw-meter"><i></i><b></b></div>
+                  <div class="smoothing-status"><span id="smoothing-status">等待触发</span><b id="smoothing-value">0%</b></div>
+                </div>
+                <div class="launch" id="launch">
+                  <button type="button" id="enter">
+                    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 9 6-9 6V4Z" fill="currentColor"/></svg>
+                    进入训练
+                  </button>
+                  <small>点击锁定鼠标 · <kbd>ESC</kbd> 退出</small>
+                </div>
+                <div class="beat-hud" id="beat-hud" hidden>
+                  <span>横移节拍</span><strong id="beat-direction">—</strong><div class="meter" id="beat-meter"><i></i></div>
+                </div>
+                <div class="notice" id="notice" role="status" hidden></div>
+                <div class="weapon-hud">
+                  <span class="action-status" id="action-status" role="status" hidden></span>
+                  <div class="weapon-identity"><strong id="weapon-hud">R-301</strong><small id="optic-hud">1× HCOG</small></div>
+                  <div class="ammo"><strong id="ammo">—</strong><span id="magazine">/ —</span></div>
+                </div>
+                <div class="target-hud">
+                  <span id="target-context">30 M</span>
+                  <div><strong id="damage">0</strong><small>累计伤害</small></div>
+                </div>
+              </div>
+            </div>
+            <footer class="range-footer">
+              <div class="shortcuts" aria-label="操作快捷键">
+                <span><kbd>WASD</kbd> 移动</span>
+                <span class="extra-shortcut"><kbd>空格</kbd> 跳跃</span>
+                <span class="extra-shortcut"><kbd>Ctrl</kbd><kbd>C</kbd> 下蹲</span>
+                <span><kbd>左键</kbd> 开火</span>
+                <span><kbd>右键</kbd> 开镜</span>
+                <span><kbd>R</kbd> 换弹</span>
+                <span><kbd>Q</kbd><kbd>E</kbd> 切镜</span>
+                <span class="extra-shortcut"><kbd>1–9</kbd> 换枪</span>
+                <span id="zoom-shortcut" hidden><kbd>Shift</kbd> 切倍镜</span>
+              </div>
+              <span class="range-status"><i></i><span id="range-status">待命</span></span>
+            </footer>
+          </section>
+        </div>
+
+        <section class="results" aria-labelledby="results-title">
+          <header class="section-heading">
+            <h2 id="results-title">本轮统计</h2>
+            <button type="button" id="reset" class="text-button">
+              <svg viewBox="0 0 16 16" aria-hidden="true" fill="none"><path d="M2.6 7A5.5 5.5 0 1 1 3.8 12M2.6 7V3.5M2.6 7H6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              重置本轮
+            </button>
+          </header>
+          <dl class="stats">
+            <div><dt>命中率</dt><dd id="accuracy">—</dd><small id="hits">0 / 0 发</small></div>
+            <div><dt>爆头率</dt><dd id="head-rate">—</dd></div>
+            <div><dt>平均 TTK</dt><dd><span id="ttk">—</span><small id="ttk-unit" hidden> s</small></dd></div>
+            <div><dt>一梭率</dt><dd id="one-clip">—</dd></div>
+            <div><dt>降后坐时间占比</dt><dd id="smoothing-time">—</dd></div>
+            <div><dt title="落点到弹群中心的均方根距离">弹群半径</dt><dd><span id="spread">—</span><small id="spread-unit" hidden> cm</small></dd></div>
+            <div><dt title="当前弹匣中触发降后坐时发射的比例">降后坐覆盖</dt><dd id="coverage">—</dd></div>
+          </dl>
+        </section>
+      </div>
+
+      <div class="side">
+        <aside class="settings" aria-labelledby="settings-title">
+          <div class="settings-heading">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 4v16M12 4v16M19 4v16M2 9h6m1 6h6m1-7h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <h2 id="settings-title">训练配置</h2>
+          </div>
+          <div class="settings-content">
+            <section class="setting-section" aria-labelledby="loadout-title">
+              <h3 id="loadout-title">武器与瞄具</h3>
+              <div class="select-group">
+                <label>武器<select data-setting="weapon" id="weapon"></select></label>
+                <label>瞄具<select data-setting="optic" id="optic"></select></label>
+              </div>
+              <div class="gun-specs" aria-label="当前武器参数">
+                <span><b id="weapon-rpm">—</b><small>RPM</small></span>
+                <span><b id="weapon-body">—</b><small>躯干</small></span>
+                <span><b id="weapon-head">—</b><small>头部</small></span>
+              </div>
+              <label class="switch-row turbo-row" id="turbo-row" hidden><span>涡轮增压器</span><input type="checkbox" data-setting="turbo" role="switch"></label>
+            </section>
+
+            <section class="setting-section" aria-labelledby="target-title">
+              <h3 id="target-title">靶位</h3>
+              <fieldset><legend>目标距离</legend><div class="segments" data-group="distance">
+                <button type="button" data-value="15" aria-pressed="false">15 m</button>
+                <button type="button" data-value="30" aria-pressed="true">30 m</button>
+                <button type="button" data-value="50" aria-pressed="false">50 m</button>
+                <button type="button" data-value="75" aria-pressed="false">75 m</button>
+              </div></fieldset>
+              <fieldset><legend>护盾值</legend><div class="segments" data-group="armor">
+                <button type="button" data-value="50" aria-pressed="false">50</button>
+                <button type="button" data-value="75" aria-pressed="false">75</button>
+                <button type="button" data-value="100" aria-pressed="false">100</button>
+                <button type="button" data-value="125" aria-pressed="true">125</button>
+              </div></fieldset>
+              <fieldset id="difficulty-row" hidden><legend>跟枪难度</legend><div class="segments segments-wide" data-group="difficulty">
+                <button type="button" data-value="1" aria-pressed="false">入门</button>
+                <button type="button" data-value="2" aria-pressed="true">标准</button>
+                <button type="button" data-value="3" aria-pressed="false">进阶</button>
+              </div></fieldset>
+            </section>
+
+            <section class="setting-section" aria-labelledby="control-title">
+              <h3 id="control-title">视野与灵敏度</h3>
+              <label class="slider-row">
+                <span>视野 FOV <span class="setting-value" data-output="fov" aria-hidden="true">106°</span></span>
+                <input type="range" data-setting="fov" min="70" max="120" step="1" value="106">
+              </label>
+              <label class="slider-row">
+                <span>鼠标灵敏度 <span class="setting-value" data-output="sensitivity" aria-hidden="true">1.50</span></span>
+                <input type="range" data-setting="sensitivity" min=".05" max="10" step=".01" value="1.5">
+              </label>
+              <div class="rotation-distance">
+                <dl aria-label="旋转一周所需的鼠标行程，单位为厘米">
+                  <div><dt>腰射</dt><dd id="cm360-hip">34.6</dd></div>
+                  <div><dt id="cm360-ads-label">开镜</dt><dd id="cm360-ads">43.3</dd></div>
+                  <div id="cm360-alt" hidden><dt>开镜 4×</dt><dd id="cm360-4x">—</dd></div>
+                </dl>
+                <span class="rotation-unit">cm/360</span>
+              </div>
+              <label class="switch-row"><span>横移降后坐</span><input type="checkbox" data-setting="smoothing" role="switch" checked></label>
+              <label class="switch-row"><span>反向压枪轨迹</span><input type="checkbox" data-setting="guide" role="switch" checked></label>
+            </section>
+
+            <details class="advanced">
+              <summary>高级设置</summary>
+              <div class="advanced-content">
+                <label class="number-row"><span>鼠标 DPI</span><input type="number" data-setting="dpi" min="100" max="32000" step="1" value="800"></label>
+                <label class="number-row"><span>开镜方式</span><select data-setting="adsMode">
+                  <option value="hold">按住</option><option value="toggle">切换</option>
+                </select></label>
+                <fieldset class="optic-multipliers"><legend>各镜倍灵敏度</legend>
+                  <label>1× <input type="number" data-multiplier="0" min=".05" max="10" step=".01" value="1"></label>
+                  <label>2× <input type="number" data-multiplier="1" min=".05" max="10" step=".01" value="1"></label>
+                  <label>3× <input type="number" data-multiplier="2" min=".05" max="10" step=".01" value="1"></label>
+                  <label>4× <input type="number" data-multiplier="3" min=".05" max="10" step=".01" value="1"></label>
+                </fieldset>
+                <label class="slider-row">
+                  <span>降后坐触发阈值 <span class="setting-value" data-output="threshold" aria-hidden="true">3.75°/s</span></span>
+                  <input type="range" data-setting="threshold" min=".25" max="15" step=".05" value="3.75">
+                </label>
+                <label class="switch-row"><span>后坐视角恢复</span><input type="checkbox" data-setting="recovery" role="switch" checked></label>
+                <label class="slider-row">
+                  <span>音量 <span class="setting-value" data-output="volume" aria-hidden="true">55%</span></span>
+                  <input type="range" data-setting="volume" min="0" max="1" step=".01" value=".55">
+                </label>
+              </div>
+            </details>
+          </div>
+        </aside>
+        <section class="trajectory" aria-labelledby="trajectory-title">
+          <header class="section-heading">
+            <h2 id="trajectory-title">弹道对照</h2>
+            <div class="chart-legend"><span><i></i>基准弹道</span><span><i></i>实际落点</span></div>
+          </header>
+          <div class="chart-view">
+            <canvas id="recoil-chart" aria-label="基准弹道与实际落点对照，角度单位为度" role="img"></canvas>
+            <p id="chart-empty">开火后显示实际落点</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

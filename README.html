@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RECOIL LAB</title>
+<style>
+:root{color-scheme:dark}body{background:#151a1f;color:#eaecea;font:16px/1.65 system-ui;max-width:800px;margin:36px auto;padding:0 24px}
+a{color:#80e4dc}img{display:block;width:100%;border:1px solid #38434e}code{color:#ffae8b}
+</style>
+<h1>RECOIL LAB</h1>
+<p>Apex 风格的 PC 键鼠压枪和跟枪靶场。支持九种武器、六种瞄具，以及站定压枪、横移降后坐、移动靶跟枪和自由练习。</p>
+<p><a href="https://wutianxian.github.io/recoil-lab/">在线训练</a> · <a href="https://github.com/wutianxian/recoil-lab/releases/tag/v1.2.0">下载离线 HTML</a> · <a href="docs/QA-v1.2.0.html">版本验收</a></p>
+<img src="docs/preview-standalone-v1.2.0.png" alt="移动靶训练中青色压枪轨迹和随击发推进的亮点">
+<h2>操作</h2>
+<p>点击靶场锁定鼠标，Esc 暂停。左键开火，右键开镜，WASD 移动，Ctrl 或 C 下蹲，Space 跳跃，1–9 换枪，R 换弹，Q 或 E 切换瞄具。可变倍镜开镜时按 Shift 切换倍率。</p>
+<h2>本地开发</h2>
+<pre><code>npm ci
+npm run dev
+npm run check
+npx tsc --noEmit
+npm run build</code></pre>
+<p>构建会在 <code>release/</code> 下生成可转发的版本化单文件。画面和音效均由代码生成，武器弹道与换弹时间为训练近似。</p>
+</html>

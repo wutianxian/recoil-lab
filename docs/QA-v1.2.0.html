@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>RECOIL LAB 1.2.0 验收</title>
+<style>
+:root{color-scheme:dark}body{background:#151a1f;color:#eaecea;font:16px/1.65 system-ui;max-width:820px;margin:36px auto;padding:0 24px}
+img{display:block;width:100%;border:1px solid #38434e}a{color:#80e4dc}code{color:#ffae8b}
+</style>
+<h1>RECOIL LAB 1.2.0</h1>
+<p>转发 <a href="../release/Recoil-Lab-v1.2.0.html">Recoil-Lab-v1.2.0.html</a> 即可。文件集成全部页面代码、样式、绘图和 Web Audio 音效，用桌面 Chrome 本地打开。</p>
+<ul>
+<li><code>src/data/weapons.ts</code> 和 <code>src/engine/audio.ts</code> 扩充四把武器，换弹按训练节奏缩短至 0.95–1.45 秒。枪械数值和逐发轨迹使用原创训练近似。</li>
+<li><code>src/engine/cadence.ts</code> 调度三连发、四连发及射速爬升。<code>src/main.ts</code>、瞄具和界面接通 1–9 换枪与全模式引导。</li>
+<li><code>scripts/standalone.mjs</code> 将构建出的代码和样式写入版本化 HTML，并在构建变化时保留已有版本。</li>
+<li><code>npm run build</code>、<code>npx tsc --noEmit</code> 和 <code>npm run check</code> 均通过。60、144、165 和 240 Hz 验证了点射与射速爬升。</li>
+<li>离线 Chrome 直接打开单文件，验证指针锁、四种模式的青色压枪曲线、6–9 切枪、复仇女神和赫姆洛克快点、R-301 换弹和轨迹开关。页面只请求了本地 HTML，未捕获运行时错误。</li>
+</ul>
+<img src="preview-standalone-v1.2.0.png" alt="单文件版本在移动靶模式中显示整梭青色压枪曲线">
+</html>
