@@ -11,6 +11,7 @@ import { Arena, BOARD_AIM_Y } from './modes/arena.ts'
 import { Panel } from './ui/panel.ts'
 import type { ChartPoint, Settings } from './ui/panel.ts'
 import { drawRecoilGuide } from './ui/recoil-guide.ts'
+import { TargetMotion } from './engine/tracking.ts'
 
 const rad = Math.PI / 180
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
@@ -24,6 +25,9 @@ const audio = new RangeAudio()
 const world = new World()
 const arena = new Arena()
 const recoil = new Recoil()
+const targetMotion = new TargetMotion()
+const boardTarget = { id: -1, x: 0, z: 30, height: BOARD_AIM_Y / .72 }
+const boardTargets = [boardTarget]
 let move = new Movement()
 let magazine = new Magazine(weapons[0])
 let guidePath: ChartPoint[] = []
@@ -104,12 +108,14 @@ function equip() {
   clearTrace()
   guideShot = null
   recoil.reset()
+  targetMotion.reset()
   audio.stopCharge()
 }
 
 function resetSession() {
   const { mode, distance, difficulty, armor } = panel.settings
   arena.configure(mode, distance, difficulty, armor)
+  boardTarget.z = distance
   move = new Movement()
   stats = { shots: 0, hits: 0, heads: 0, damage: 0, kills: 0, oneClips: 0, killTime: 0, firingTime: 0, smoothTime: 0 }
   firstMagazine.clear()
@@ -171,6 +177,8 @@ function releaseInput() {
   mouseX = mouseY = 0
   clock.clearInput()
   guideShot = null
+  recoil.clearTurnHistory()
+  targetMotion.reset()
   magazine.release()
   audio.stopCharge()
 }
@@ -289,9 +297,11 @@ function simulate(dt: number, now: number, dx: number, dy: number) {
   lookYaw = wrap(lookYaw + mouseYaw)
   lookPitch = clamp(lookPitch - dy * degreesPerCount, -85 - recoil.pitch, 85 - recoil.pitch)
   move.step(dt, keys, camera.yaw, ads)
-  recoil.step(dt, mouseYaw, firing, settings.smoothing, settings.threshold,
-    settings.recovery, move.swayYaw, move.swayPitch)
   arena.step(dt)
+  targetMotion.step(dt, move, lookYaw + recoil.yaw, lookPitch + recoil.pitch,
+    arena.mode === 'recoil' ? boardTargets : arena.targets)
+  recoil.step(dt, mouseYaw, firing, settings.smoothing, settings.threshold,
+    settings.recovery, move.swayYaw, move.swayPitch, settings.relativeTracking ? targetMotion : undefined)
   syncCamera()
   recoilFlash = Math.max(0, recoilFlash - dt * 17)
   hitFlash = Math.max(0, hitFlash - dt * 8)
@@ -474,6 +484,7 @@ function frame(timestamp: number) {
     panel.update({
       locked, ads: easeAds(adsProgress), zoom, ammo: magazine.ammo, magazine: magazine.spec.mag,
       yawRate: recoil.yawRate, smoothing: recoil.suppression, smoothingActive: recoil.active,
+      targetYawRate: targetMotion.yawRate, trackingRate: recoil.trackingRate, trackingActive: recoil.trackingActive,
       beat: arena.mode === 'strafe' ? arena.beat : null, beatProgress: arena.beatProgress,
       damage: stats.damage, lookingAtDistance: lookingAtDistance(), status:
         magazine.reloadUntil >= 0 ? '换弹中' : magazine.chargeStarted >= 0 ? '蓄力中'

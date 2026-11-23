@@ -200,3 +200,50 @@ canceledBurst.step(1.5, true, false)
 canceledBurst.release()
 assert.deepEqual(canceledBurst.step(1.7, false, false), {})
 console.log('Burst, charge ramp, spin-up and burst cancellation passed at 60 / 144 / 165 / 240 Hz.')
+
+function followedShot(turn, bearing, proximity = 1, smoothing = true) {
+  const recoil = new Recoil()
+  recoil.step(.06, turn * .06, true, smoothing, 3.75, false, 0, 0, { yawRate: bearing, proximity })
+  return recoil
+}
+assert.equal(followedShot(0, 10).suppression, 0)
+assert.equal(followedShot(3, -4).suppression, 0)
+assert.equal(followedShot(3, 4, 0).suppression, 0)
+assert.equal(followedShot(12, 12, 1, false).suppression, 0)
+assert.ok(followedShot(3, 1).suppression < followedShot(3, 3).suppression)
+assert.ok(followedShot(9, 9).suppression > followedShot(9, 0).suppression)
+assert.ok(followedShot(5, 5).suppression < followedShot(12, 12).suppression)
+assert.ok(followedShot(110, 110).suppression <= .98)
+const tracked = followedShot(-3, -3)
+assert.equal(tracked.trackingActive, true)
+tracked.kick(1, 1, .05, () => .5)
+tracked.step(.05, 0, false, true, 3.75, false, 0, 0)
+assert.ok(tracked.yaw < 1 && tracked.pitch < 1)
+tracked.clearTurnHistory()
+assert.equal(tracked.yawRate, 0)
+assert.equal(tracked.trackingRate, 0)
+console.log('Relative tracking requires matching look input and scales the captured shot kick.')
+
+const { TargetMotion } = await import('../src/engine/tracking.ts')
+function bearingFor(distance, playerSpeed, dummySpeed, radialSpeed = 0) {
+  const tracking = new TargetMotion()
+  for (let i = 0; i < 145; i++) {
+    const time = i / 480
+    const body = { id: 1, x: dummySpeed * time, z: distance + radialSpeed * time, height: 2 }
+    const origin = { x: playerSpeed * time, y: 1.44, z: 0 }
+    const yaw = Math.atan2(body.x - origin.x, body.z) * 180 / Math.PI
+    tracking.step(1 / 480, origin, yaw, 0, [body])
+  }
+  return tracking
+}
+assert.equal(bearingFor(30, 5, 5).yawRate, 0)
+assert.equal(bearingFor(30, 0, 0, 5).yawRate, 0)
+assert.ok(bearingFor(30, 4, 0).yawRate < 0)
+assert.ok(bearingFor(15, -4, 4).yawRate > bearingFor(75, -4, 4).yawRate)
+assert.ok(bearingFor(30, -4, 4).yawRate > bearingFor(30, 0, 4).yawRate)
+const switched = bearingFor(30, 0, 4)
+switched.step(1 / 480, { x: 0, y: 1.44, z: 0 }, 0, 0, [{ id: 2, x: 0, z: 30, height: 2 }])
+assert.equal(switched.yawRate, 0)
+switched.step(1 / 480, { x: 0, y: 1.44, z: 0 }, 30, 0, [{ id: 2, x: 0, z: 30, height: 2 }])
+assert.equal(switched.proximity, 0)
+console.log('Target bearing follows relative side motion, distance and target selection.')

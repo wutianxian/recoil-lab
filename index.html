@@ -46,9 +46,10 @@
                   <strong id="mode-title">站定压枪</strong>
                   <small id="mode-description">保持站定，观察弹道并练习反向压枪。</small>
                 </div>
-                <div class="motion-hud" aria-label="转向速度与降后坐">
-                  <div><span>转向角速度</span><strong><span id="yaw-rate">0.0</span> <small>°/s</small></strong></div>
+                <div class="motion-hud" role="group" aria-label="转向、目标角速度与降后坐">
+                  <div class="motion-readout"><span>转向角速度</span><strong><span id="yaw-rate">0.0</span> <small>°/s</small></strong></div>
                   <div class="meter" id="yaw-meter"><i></i><b></b></div>
+                  <div class="motion-readout target-motion"><span title="目标视线角速度">目标角速度</span><strong><span id="target-yaw-rate">0.0</span> <small>°/s</small></strong></div>
                   <div class="smoothing-status"><span id="smoothing-status">等待触发</span><b id="smoothing-value">0%</b></div>
                 </div>
                 <div class="launch" id="launch">
@@ -172,7 +173,9 @@
                 </dl>
                 <span class="rotation-unit">cm/360</span>
               </div>
-              <label class="switch-row"><span>横移降后坐</span><input type="checkbox" data-setting="smoothing" role="switch" checked></label>
+              <label class="switch-row"><span>转向降后坐</span><input type="checkbox" data-setting="smoothing" role="switch" checked></label>
+              <label class="switch-row"><span>相对跟枪补偿</span><input type="checkbox" data-setting="relativeTracking" role="switch" aria-describedby="relative-tracking-description" checked></label>
+              <p class="switch-description" id="relative-tracking-description">训练近似，根据跟枪方向与目标横移调整。</p>
               <label class="switch-row"><span>反向压枪轨迹</span><input type="checkbox" data-setting="guide" role="switch" checked></label>
             </section>
 

@@ -14,6 +14,7 @@ export interface Settings {
   adsMode: 'hold' | 'toggle'
   threshold: number
   smoothing: boolean
+  relativeTracking: boolean
   recovery: boolean
   guide: boolean
   volume: number
@@ -34,6 +35,9 @@ export interface HudState {
   ammo: number
   magazine: number
   yawRate: number
+  targetYawRate: number
+  trackingRate: number
+  trackingActive: boolean
   smoothing: number
   smoothingActive: boolean
   beat: 'left' | 'right' | null
@@ -64,6 +68,9 @@ const modeInfo: Record<Mode, { title: string; tag: string; description: string }
 }
 
 const percent = (fraction: number) => `${Math.round(fraction * 100)}%`
+const signedRate = new Intl.NumberFormat('en-US', {
+  signDisplay: 'exceptZero', useGrouping: false, minimumFractionDigits: 1, maximumFractionDigits: 1,
+}).format
 const text = (element: HTMLElement, value: string) => {
   if (element.textContent !== value) element.textContent = value
 }
@@ -75,7 +82,7 @@ function fillOptions(select: HTMLSelectElement, names: readonly string[]) {
 }
 
 const hudIds = [
-  'yaw-rate', 'smoothing-status', 'smoothing-value', 'weapon-hud', 'optic-hud', 'ammo',
+  'yaw-rate', 'target-yaw-rate', 'smoothing-status', 'smoothing-value', 'weapon-hud', 'optic-hud', 'ammo',
   'magazine', 'damage', 'target-context', 'beat-direction', 'accuracy', 'head-rate', 'hits',
   'ttk', 'one-clip', 'smoothing-time', 'spread', 'coverage', 'range-status',
 ] as const
@@ -114,7 +121,7 @@ export class Panel {
     this.settings = {
       mode: 'recoil', weapon: Math.max(0, weapons.findIndex(weapon => weapon.id === 'r301')),
       optic: 1, distance: 30, dpi: 800, sensitivity: 1.5, fov: 106, multipliers: [1, 1, 1, 1],
-      adsMode: 'hold', threshold: 3.75, smoothing: true, recovery: true, guide: true,
+      adsMode: 'hold', threshold: 3.75, smoothing: true, relativeTracking: true, recovery: true, guide: true,
       volume: .55, turbo: false, difficulty: 2, armor: 125,
     }
 
@@ -138,7 +145,7 @@ export class Panel {
         if (key === 'adsMode') {
           this.set(key, field.value === 'toggle' ? 'toggle' : 'hold')
         } else if (field instanceof HTMLInputElement && field.type === 'checkbox') {
-          this.set(key as 'smoothing' | 'guide' | 'recovery' | 'turbo', field.checked)
+          this.set(key as 'smoothing' | 'relativeTracking' | 'guide' | 'recovery' | 'turbo', field.checked)
         } else {
           const input = Number(field.value)
           const value = field instanceof HTMLInputElement && field.value
@@ -237,6 +244,7 @@ export class Panel {
     this.actionStatus.hidden = !state.locked || !['换弹中', '蓄力中', '按 R 换弹'].includes(state.status)
     if (!this.actionStatus.hidden) text(this.actionStatus, state.status)
     this.motion.classList.toggle('is-active', state.smoothingActive)
+    this.motion.classList.toggle('is-tracking', state.trackingActive)
     this.ammo.classList.toggle('is-low', state.ammo <= Math.max(3, state.magazine * .15))
     const rate = Math.abs(state.yawRate)
     const maxRate = Math.max(10, this.settings.threshold * 2)
@@ -254,7 +262,9 @@ export class Panel {
       : optic.replace(/ (经典红点|全息)$/, '').replace('x', '×')
     const values = {
       'yaw-rate': rate.toFixed(rate < 100 ? 1 : 0),
-      'smoothing-status': this.settings.smoothing ? state.smoothingActive ? '已触发' : '等待触发' : '已关闭',
+      'target-yaw-rate': signedRate(state.targetYawRate),
+      'smoothing-status': state.trackingActive ? `跟枪补偿 ${signedRate(state.trackingRate)}°/s`
+        : this.settings.smoothing ? state.smoothingActive ? '已触发' : '等待触发' : '已关闭',
       'smoothing-value': percent(state.smoothing),
       'optic-hud': opticHud,
       ammo: String(state.ammo).padStart(2, '0'),

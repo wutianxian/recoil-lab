@@ -1,5 +1,6 @@
 type Kick = { yaw: number; pitch: number; duration: number; elapsed: number }
 type MouseSample = { time: number; yaw: number }
+type TrackingInput = { yawRate: number; proximity: number }
 
 const smoothingWindow = .06
 const springFrequency = 26
@@ -28,6 +29,8 @@ export class Recoil {
   yawRate = 0
   suppression = 0
   active = false
+  trackingRate = 0
+  trackingActive = false
 
   private readonly kicks: Kick[] = []
   private readonly samples: MouseSample[] = []
@@ -38,10 +41,16 @@ export class Recoil {
 
   reset() {
     this.yaw = this.pitch = this.swayYaw = this.swayPitch = 0
-    this.yawRate = this.suppression = 0
-    this.active = false
-    this.kicks.length = this.samples.length = 0
-    this.sampledTime = this.sampledYaw = this.springYaw = this.springPitch = 0
+    this.kicks.length = 0
+    this.springYaw = this.springPitch = 0
+    this.clearTurnHistory()
+  }
+
+  clearTurnHistory() {
+    this.yawRate = this.suppression = this.trackingRate = 0
+    this.active = this.trackingActive = false
+    this.samples.length = 0
+    this.sampledTime = this.sampledYaw = 0
   }
 
   private sampleMouse(dt: number, mouseYaw: number) {
@@ -63,12 +72,20 @@ export class Recoil {
   }
 
   step(dt: number, mouseYaw: number, firing: boolean, smoothing: boolean, threshold: number,
-    recovery: boolean, moveYaw: number, movePitch: number) {
+    recovery: boolean, moveYaw: number, movePitch: number, tracking?: TrackingInput) {
     if (dt <= 0) return
     this.sampleMouse(dt, mouseYaw)
     const turnSpeed = Math.abs(this.yawRate)
-    this.active = firing && smoothing && turnSpeed > threshold
-    this.suppression = this.active ? .88 + .10 * Math.min(1, (turnSpeed - threshold) / Math.max(1, threshold)) : 0
+    const smoothingOn = firing && smoothing
+    const aimSuppression = smoothingOn && turnSpeed > threshold
+      ? .88 + .10 * Math.min(1, (turnSpeed - threshold) / (3 * Math.max(1, threshold))) : 0
+    this.trackingRate = smoothingOn && tracking && this.yawRate * tracking.yawRate > 0
+      ? Math.min(turnSpeed, Math.abs(tracking.yawRate)) * tracking.proximity : 0
+    // The optional trainer model uses only the overlap between target motion and user input.
+    const trackingGain = .72 * this.trackingRate / (Math.max(.25, threshold) + this.trackingRate)
+    this.suppression = Math.min(.98, aimSuppression + (1 - aimSuppression) * trackingGain)
+    this.trackingActive = this.suppression - aimSuppression > .005
+    this.active = aimSuppression > 0 || this.trackingActive
 
     for (const impulse of this.kicks) {
       const before = viewKickProgress(impulse.elapsed / impulse.duration)
